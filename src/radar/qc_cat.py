@@ -100,7 +100,7 @@ def calculate_raw_availability(df, heights=None):
 
     return pd.DataFrame(results)
 
-def cat_qc(df, qc_df):
+def radar_cat_qc(df, qc_df):
     """
     Compute and print availability summaries for raw and QC-filtered data.
 

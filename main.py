@@ -1,6 +1,6 @@
 from src.data_file import *
-from src.qc_filter import run_qc
-from src.qc_cat import cat_qc
+from src.radar.qc_filter import radar_run_qc
+from src.radar.qc_cat import radar_cat_qc
 import sys
 
 def main():
@@ -24,9 +24,9 @@ def main():
         sys.exit(1) 
     
     # Run QC and categorize results
-    qc_radar_data = run_qc(radar_data)
+    qc_radar_data = radar_run_qc(radar_data)
     print(qc_radar_data)
-    cat_qc(radar_data, qc_radar_data)
+    radar_cat_qc(radar_data, qc_radar_data)
     
     # Export QC results
     export_data(qc_radar_data, "result/qc_radar.csv")

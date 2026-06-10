@@ -462,7 +462,7 @@ def apply_qc(df):
 
     return df
 
-def run_qc(df):
+def radar_run_qc(df):
     """
     Run the full QC pipeline on the input DataFrame.
 
