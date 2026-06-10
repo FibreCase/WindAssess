@@ -4,6 +4,19 @@ import pandas as pd
 HEIGHTS = list(range(40, 201, 5))
 
 def init_qc_flags(df):
+    """
+    Initialize QC flag columns for all configured heights.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame containing measurement columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A copy of the input DataFrame with `QC_{h}m` columns added and set to 0.
+    """
 
     df = df.copy()
 
@@ -14,12 +27,43 @@ def init_qc_flags(df):
     return df
 
 def angle_diff(a, b):
+    """
+    Compute the minimal angular difference between two angles (in degrees).
+
+    Handles wrap-around at 360 degrees and operates elementwise for arrays/Series.
+
+    Parameters
+    ----------
+    a, b : array-like or scalar
+        Angles in degrees.
+
+    Returns
+    -------
+    array-like or scalar
+        Minimal absolute difference between angles in degrees.
+    """
 
     d = np.abs(a - b)
 
     return np.minimum(d, 360 - d)
 
 def range_test(df):
+    """
+    Flag measurements outside physically plausible ranges.
+
+    For each configured height this test marks QC as 1 when values are out of
+    acceptable ranges: wind speed, wind direction, vertical wind speed, and standard deviation.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with measurement columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A copy of the DataFrame with QC flags set to 1 where tests fail.
+    """
 
     df = df.copy()
 
@@ -51,6 +95,22 @@ def range_test(df):
     return df
 
 def turbulence_correlation_test(df):
+    """
+    Test turbulence intensity correlation and flag suspicious values.
+
+    Computes turbulence intensity (TI = std / speed) and flags records where
+    TI is negative or unrealistically large (>1) with QC code 2, preserving existing flags.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with wind speed and std columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with QC code 2 set where TI is invalid.
+    """
 
     df = df.copy()
 
@@ -80,6 +140,22 @@ def turbulence_correlation_test(df):
     return df
 
 def vertical_speed_correlation_test(df):
+    """
+    Flag large vertical differences in wind speed between adjacent heights.
+
+    If the absolute difference between adjacent height wind speeds exceeds 15 m/s,
+    set QC code 2 for both heights (if not already flagged).
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with wind speed columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with QC code 2 set for inconsistent vertical speed pairs.
+    """
 
     df = df.copy()
 
@@ -110,6 +186,22 @@ def vertical_speed_correlation_test(df):
     return df
 
 def vertical_direction_correlation_test(df):
+    """
+    Flag large direction differences between adjacent heights.
+
+    Uses `angle_diff` to handle circular wrap-around and marks QC code 2 when
+    the direction difference exceeds 120 degrees.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with wind direction columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with QC code 2 set for large direction discrepancies.
+    """
 
     df = df.copy()
 
@@ -141,6 +233,25 @@ def vertical_direction_correlation_test(df):
     return df
 
 def flatline_test(df, window=6):
+    """
+    Detect flatline (constant) wind speed series over a rolling window.
+
+    Marks QC code 3 for records where the wind speed is constant (rounded to 3 decimals)
+    across the specified rolling window.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with wind speed columns.
+
+    window : int, optional
+        Rolling window size in observations. Default is 6.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with QC code 3 set where flatlines are detected.
+    """
 
     df = df.copy()
 
@@ -172,6 +283,21 @@ def flatline_test(df, window=6):
     return df
 
 def spike_test(df):
+    """
+    Detect sudden spikes in wind speed time series.
+
+    Flags QC code 3 when the absolute change between consecutive samples exceeds 20 m/s.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with wind speed columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with QC code 3 set for spike detections.
+    """
 
     df = df.copy()
 
@@ -197,6 +323,22 @@ def spike_test(df):
     return df
 
 def profile_consistency_test(df):
+    """
+    Check vertical profile consistency for each timestamp.
+
+    For each profile (all heights) this test computes sign changes in the derivative
+    of the wind speed profile and marks QC code 4 for profiles with excessive oscillations.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with wind speed columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with QC code 4 set for inconsistent profiles.
+    """
 
     df = df.copy()
 
@@ -236,6 +378,21 @@ def profile_consistency_test(df):
     return df
 
 def missing_test(df):
+    """
+    Flag records with missing wind speed or direction at each height.
+
+    Sets QC code 5 for heights where either wind speed or wind direction is missing.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame with measurement columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with QC code 5 set for missing data.
+    """
 
     df = df.copy()
 
@@ -263,6 +420,22 @@ def missing_test(df):
     return df
 
 def apply_qc(df):
+    """
+    Apply QC flags by setting invalid measurements to NaN.
+
+    For each height, if the QC flag is greater than 0, the corresponding
+    measurement columns (speed, direction, vertical speed, std) are set to NaN.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input DataFrame containing QC flags and measurement columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A copy of the DataFrame with invalid measurements removed (set to NaN).
+    """
 
     df = df.copy()
 
@@ -290,6 +463,25 @@ def apply_qc(df):
     return df
 
 def run_qc(df):
+    """
+    Run the full QC pipeline on the input DataFrame.
+
+    This function performs initialization of QC flags, executes a sequence of
+    tests (range, missing, correlation, trend, spike/profile tests), applies
+    the QC by removing invalid values, and returns both the cleaned DataFrame
+    and the QC flags DataFrame.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Raw measurement DataFrame to be quality-controlled.
+
+    Returns
+    -------
+    tuple
+        `(qc_df, qc_df)` where `qc_df` has invalid measurements set to NaN,
+        and `qc_df` contains the QC code columns.
+    """
 
     df = init_qc_flags(df)
 
@@ -312,9 +504,9 @@ def run_qc(df):
     # df = profile_consistency_test(df)
 
     print("Apply QC...")
-    cleaned_df = apply_qc(df)
+    qc_df = apply_qc(df)
 
-    return cleaned_df, df
+    return qc_df
 
 
 
