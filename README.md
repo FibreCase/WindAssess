@@ -1,4 +1,4 @@
-# Wind Gauge - 风资源评估工具
+# WindAccess - 风资源评估工具
 
 基于 Python 的风资源测量数据处理与可视化分析工具，支持**雷达测风**（SODAR/LIDAR）和**测风塔**两种数据源，用于风电场选址评估。
 
@@ -22,7 +22,7 @@
 ## 项目结构
 
 ```
-python-wind-gauge/
+WindAccess/
 ├── main.py                     # 程序入口，串联完整流水线
 ├── pyproject.toml              # 项目配置与依赖声明
 ├── data/
@@ -64,7 +64,7 @@ python-wind-gauge/
 ```bash
 # 克隆项目
 git clone <repo-url>
-cd python-wind-gauge
+cd WindAccess
 
 # 安装依赖
 uv sync
