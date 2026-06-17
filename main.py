@@ -16,7 +16,8 @@ def main():
     -------
     None
     """
-    # Import radar data
+
+    # Import data
     radar_data = import_data("data/radar.csv")
     if radar_data is not None:
         print("Data imported successfully. Here are the first few rows:")
@@ -25,7 +26,6 @@ def main():
         print("Failed to import data.")
         sys.exit(1) 
 
-    # Import tower data
     tower_data = import_data("data/tower.csv")
     if tower_data is not None:
         print("Tower data imported successfully. Here are the first few rows:")
@@ -35,10 +35,16 @@ def main():
         sys.exit(1)
     
     # Run QC and categorize results
+    print("\n------------------------------------------------")
+    print("Starting QC and categorization for radar data...")
+    print("------------------------------------------------\n")
+
     qc_radar_data = radar_run_qc(radar_data)
     radar_cat_qc(radar_data, qc_radar_data)
-    
-    # TODO: Tower数据的处理方式不正确，表头不一样，当前按照雷达数据的方式处理，后续需要修改处理逻辑
+
+    print("\n------------------------------------------------")
+    print("Starting QC and categorization for tower data...")
+    print("------------------------------------------------\n")
 
     qc_tower_data = tower_run_qc(tower_data)
     tower_cat_qc(tower_data, qc_tower_data)

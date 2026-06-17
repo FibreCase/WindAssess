@@ -1,7 +1,37 @@
 import numpy as np
 import pandas as pd
 
-HEIGHTS = list(range(40, 201, 5))
+# Tower data has specific heights: 2m, 5m, 10m, 20m, 50m, 80m
+HEIGHTS = [2, 5, 10, 20, 50, 80]
+
+
+def get_tower_column_name(height, var_type):
+    """
+    Get the correct column name for tower data based on height and variable type.
+
+    Parameters
+    ----------
+    height : int
+        Measurement height in meters (2, 5, 10, 20, 50, or 80).
+    var_type : str
+        Variable type: 'speed', 'direction', or 'std'.
+
+    Returns
+    -------
+    str
+        The column name string, or None if height is not valid.
+    """
+    if height not in HEIGHTS:
+        return None
+
+    if var_type == 'speed':
+        return f"Avg Wind Speed @ {height}m [m/s]"
+    elif var_type == 'direction':
+        return f"Avg Wind Direction @ {height}m [deg]"
+    elif var_type == 'std':
+        return f"Avg Wind Speed (std dev) @ {height}m [m/s]"
+    else:
+        return None
 
 
 def init_qc_flags(df):
@@ -18,11 +48,9 @@ def init_qc_flags(df):
     pandas.DataFrame
         A copy of the input DataFrame with `QC_{h}m` columns added and set to 0.
     """
-
     df = df.copy()
 
     for h in HEIGHTS:
-
         df[f"QC_{h}m"] = 0
 
     return df
@@ -44,9 +72,7 @@ def angle_diff(a, b):
     array-like or scalar
         Minimal absolute difference between angles in degrees.
     """
-
     d = np.abs(a - b)
-
     return np.minimum(d, 360 - d)
 
 
@@ -55,7 +81,8 @@ def range_test(df):
     Flag measurements outside physically plausible ranges.
 
     For each configured height this test marks QC as 1 when values are out of
-    acceptable ranges: wind speed, wind direction, vertical wind speed, and standard deviation.
+    acceptable ranges: wind speed, wind direction, and standard deviation.
+    Note: Tower data does not have vertical wind speed measurements.
 
     Parameters
     ----------
@@ -67,30 +94,26 @@ def range_test(df):
     pandas.DataFrame
         A copy of the DataFrame with QC flags set to 1 where tests fail.
     """
-
     df = df.copy()
 
     for h in HEIGHTS:
-
-        ws = f"Wind Speed{h}m"
-        wd = f"Wind Direction{h}m"
-        vw = f"Vertical Wind Speed{h}m"
-        std = f"Wind Speed Std{h}m"
+        ws = get_tower_column_name(h, 'speed')
+        wd = get_tower_column_name(h, 'direction')
+        std = get_tower_column_name(h, 'std')
 
         qc = f"QC_{h}m"
 
         mask = pd.Series(False, index=df.index)
 
-        if ws in df:
+        if ws in df.columns:
             mask |= (df[ws] < 0) | (df[ws] > 75)
 
-        if wd in df:
+        if wd in df.columns:
             mask |= (df[wd] < 0) | (df[wd] >= 360)
 
-        if vw in df:
-            mask |= (df[vw] < -10) | (df[vw] > 10)
+        # Tower data does not have vertical wind speed
 
-        if std in df:
+        if std in df.columns:
             mask |= (df[std] < 0) | (df[std] > 20)
 
         df.loc[mask, qc] = 1
@@ -105,16 +128,14 @@ def turbulence_correlation_test(df):
     Computes turbulence intensity (TI = std / speed) and flags records where
     TI is negative or unrealistically large (>1) with QC code 2, preserving existing flags.
     """
-
     df = df.copy()
 
     for h in HEIGHTS:
-
-        ws = f"Wind Speed{h}m"
-        std = f"Wind Speed Std{h}m"
+        ws = get_tower_column_name(h, 'speed')
+        std = get_tower_column_name(h, 'std')
         qc = f"QC_{h}m"
 
-        if ws not in df or std not in df:
+        if ws not in df.columns or std not in df.columns:
             continue
 
         speed = df[ws]
@@ -128,59 +149,66 @@ def turbulence_correlation_test(df):
 
 
 def vertical_speed_correlation_test(df):
-    """Flag large vertical differences in wind speed between adjacent heights."""
+    """
+    Flag large vertical differences in wind speed between available heights.
 
+    For tower data, compares between consecutive available heights rather than
+    fixed 5m intervals.
+    """
     df = df.copy()
 
-    for h in range(40, 200, 5):
+    # Compare between consecutive available heights
+    for i in range(len(HEIGHTS) - 1):
+        h1 = HEIGHTS[i]
+        h2 = HEIGHTS[i + 1]
 
-        ws1 = f"Wind Speed{h}m"
-        ws2 = f"Wind Speed{h+5}m"
+        ws1 = get_tower_column_name(h1, 'speed')
+        ws2 = get_tower_column_name(h2, 'speed')
 
-        if ws1 not in df or ws2 not in df:
+        if ws1 not in df.columns or ws2 not in df.columns:
             continue
 
         diff = np.abs(df[ws2] - df[ws1])
         mask = diff > 15
 
-        df.loc[mask & (df[f"QC_{h}m"] == 0), f"QC_{h}m"] = 2
-        df.loc[mask & (df[f"QC_{h+5}m"] == 0), f"QC_{h+5}m"] = 2
+        df.loc[mask & (df[f"QC_{h1}m"] == 0), f"QC_{h1}m"] = 2
+        df.loc[mask & (df[f"QC_{h2}m"] == 0), f"QC_{h2}m"] = 2
 
     return df
 
 
 def vertical_direction_correlation_test(df):
-    """Flag large direction differences between adjacent heights."""
-
+    """Flag large direction differences between available heights."""
     df = df.copy()
 
-    for h in range(40, 200, 5):
+    # Compare between consecutive available heights
+    for i in range(len(HEIGHTS) - 1):
+        h1 = HEIGHTS[i]
+        h2 = HEIGHTS[i + 1]
 
-        wd1 = f"Wind Direction{h}m"
-        wd2 = f"Wind Direction{h+5}m"
+        wd1 = get_tower_column_name(h1, 'direction')
+        wd2 = get_tower_column_name(h2, 'direction')
 
-        if wd1 not in df or wd2 not in df:
+        if wd1 not in df.columns or wd2 not in df.columns:
             continue
 
         diff = angle_diff(df[wd1], df[wd2])
         mask = diff > 120
 
-        df.loc[mask & (df[f"QC_{h}m"] == 0), f"QC_{h}m"] = 2
-        df.loc[mask & (df[f"QC_{h+5}m"] == 0), f"QC_{h+5}m"] = 2
+        df.loc[mask & (df[f"QC_{h1}m"] == 0), f"QC_{h1}m"] = 2
+        df.loc[mask & (df[f"QC_{h2}m"] == 0), f"QC_{h2}m"] = 2
 
     return df
 
 
 def flatline_test(df, window=6):
     """Detect flatline (constant) wind speed series over a rolling window."""
-
     df = df.copy()
 
     for h in HEIGHTS:
+        ws = get_tower_column_name(h, 'speed')
 
-        ws = f"Wind Speed{h}m"
-
-        if ws not in df:
+        if ws not in df.columns:
             continue
 
         flat = (
@@ -198,14 +226,12 @@ def flatline_test(df, window=6):
 
 def spike_test(df):
     """Detect sudden spikes in wind speed time series."""
-
     df = df.copy()
 
     for h in HEIGHTS:
+        ws = get_tower_column_name(h, 'speed')
 
-        ws = f"Wind Speed{h}m"
-
-        if ws not in df:
+        if ws not in df.columns:
             continue
 
         dv = np.abs(df[ws].diff())
@@ -218,36 +244,32 @@ def spike_test(df):
 
 def profile_consistency_test(df):
     """Check vertical profile consistency for each timestamp."""
-
     df = df.copy()
 
     speed_cols = [
-        f"Wind Speed{h}m"
+        get_tower_column_name(h, 'speed')
         for h in HEIGHTS
-        if f"Wind Speed{h}m" in df.columns
+        if get_tower_column_name(h, 'speed') in df.columns
     ]
 
     for idx, row in df.iterrows():
-
         profile = row[speed_cols].values.astype(float)
 
-        if np.sum(~np.isnan(profile)) < 10:
+        if np.sum(~np.isnan(profile)) < 4:
             continue
 
         d = np.diff(profile)
         d = d[~np.isnan(d)]
 
-        if len(d) < 5:
+        if len(d) < 3:
             continue
 
         sign_changes = np.sum(np.diff(np.sign(d)) != 0)
 
-        if sign_changes > 8:
-
+        # Lower threshold due to fewer height levels
+        if sign_changes > 4:
             for h in HEIGHTS:
-
                 qc = f"QC_{h}m"
-
                 if df.at[idx, qc] == 0:
                     df.at[idx, qc] = 4
 
@@ -256,18 +278,18 @@ def profile_consistency_test(df):
 
 def missing_test(df):
     """Flag records with missing wind speed or direction at each height."""
-
     df = df.copy()
 
     for h in HEIGHTS:
-
         qc = f"QC_{h}m"
-        cols = [f"Wind Speed{h}m", f"Wind Direction{h}m"]
+        ws = get_tower_column_name(h, 'speed')
+        wd = get_tower_column_name(h, 'direction')
+
+        cols = [ws, wd]
         missing = pd.Series(False, index=df.index)
 
         for col in cols:
-
-            if col in df:
+            if col in df.columns:
                 missing |= df[col].isna()
 
         df.loc[missing & (df[qc] == 0), qc] = 5
@@ -277,22 +299,19 @@ def missing_test(df):
 
 def apply_qc(df):
     """Apply QC flags by setting invalid measurements to NaN."""
-
     df = df.copy()
 
     for h in HEIGHTS:
-
         qc = f"QC_{h}m"
+
         cols = [
-            f"Wind Speed{h}m",
-            f"Wind Direction{h}m",
-            f"Vertical Wind Speed{h}m",
-            f"Wind Speed Std{h}m",
+            get_tower_column_name(h, 'speed'),
+            get_tower_column_name(h, 'direction'),
+            get_tower_column_name(h, 'std'),
         ]
 
         for col in cols:
-
-            if col not in df:
+            if col is None or col not in df.columns:
                 continue
 
             df.loc[df[qc] > 0, col] = np.nan
@@ -302,7 +321,6 @@ def apply_qc(df):
 
 def tower_run_qc(df):
     """Run the full QC pipeline on the tower DataFrame."""
-
     df = init_qc_flags(df)
 
     print("Range Test...")
