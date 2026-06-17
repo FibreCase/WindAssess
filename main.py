@@ -3,6 +3,8 @@ from src.radar.qc_filter import radar_run_qc
 from src.radar.qc_cat import radar_cat_qc
 from src.tower.qc_filter import tower_run_qc
 from src.tower.qc_cat import tower_cat_qc
+from src.chart.weibull_plot import main as weibull_plot_main
+from src.chart.daily_variation import main as daily_variation_main
 import sys
 
 def main():
@@ -10,7 +12,7 @@ def main():
     Main program entry point.
 
     Imports radar and tower data, runs quality control (QC) and categorization
-    for both datasets, then exports QC results to CSV files.
+    for both datasets, exports QC results to CSV files, and generates charts.
 
     Returns
     -------
@@ -60,6 +62,27 @@ def main():
     
     export_data(qc_radar_data, "result/qc_radar.csv")
     export_data(qc_tower_data, "result/qc_tower.csv")
+
+    # Generate charts
+    print("\n------------------------------------------------")
+    print("Generating Weibull distribution plots...")
+    print("------------------------------------------------\n")
+    
+    weibull_plot_main()
+
+    print("\n------------------------------------------------")
+    print("Generating daily variation plots...")
+    print("------------------------------------------------\n")
+    
+    daily_variation_main()
+
+    print("\n================================================")
+    print("All processing complete!")
+    print("================================================")
+    print("\nResults:")
+    print("  - QC data: result/qc_radar.csv, result/qc_tower.csv")
+    print("  - Weibull charts: result/chart/weibull/")
+    print("  - Daily variation charts: result/chart/daily_variation/")
 
 
 if __name__ == "__main__":
