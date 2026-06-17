@@ -206,7 +206,7 @@ def plot_wind_energy_rose(rose_data, title, output_path):
 
     # Plot bars
     bars = ax.bar(directions_rad, mean_energy, width=sector_width, bottom=0,
-                  color=plt.cm.Reds(np.linspace(0.3, 0.9, n_sectors)),
+                  color=plt.cm.YlOrRd(np.linspace(0.3, 0.9, n_sectors)),
                   edgecolor='white', linewidth=0.5)
 
     ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
@@ -260,7 +260,10 @@ def plot_combined_rose(rose_data_list, titles, height_labels, plot_type, output_
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
 
-    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(rose_data_list)))
+    if plot_type == 'frequency':
+        colors = plt.cm.cool(np.linspace(0.1, 0.9, len(rose_data_list)))
+    else:
+        colors = plt.cm.hot(np.linspace(0.1, 0.8, len(rose_data_list)))
 
     max_val = 0
     for rose_data, color in zip(rose_data_list, colors):
