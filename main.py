@@ -93,16 +93,6 @@ def main():
     print("\n================================================")
     print("All processing complete!")
     print("================================================")
-    print("\nResults:")
-    print("  - QC data: result/qc_radar.csv, result/qc_tower.csv")
-    print("  - Radar charts:")
-    print("    - Weibull: result/chart/radar/weibull/")
-    print("    - Daily variation: result/chart/radar/daily_variation/")
-    print("  - Tower charts:")
-    print("    - Weibull: result/chart/tower/weibull/")
-    print("    - Daily variation: result/chart/tower/daily_variation/")
-    print("    - Density variation: result/chart/tower/density_variation/")
-    print("    - Shear variation: result/chart/tower/shear_variation/")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 """
 Air density daily variation plotting.
 
-Generates daily air density variation plots from tower meteorological data.
+Generates daily air density variation plots from meteorological data.
+Supports both radar (single station) and tower (multi-height) data formats.
 Air density is calculated using temperature and pressure measurements.
 """
 
@@ -11,6 +12,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from src.data_file import import_data
 
+
+# Output directory
+RADAR_OUTPUT_DIR = "result/chart/radar/density_variation"
+TOWER_OUTPUT_DIR = "result/chart/tower/density_variation"
 
 # Tower heights with temperature measurements
 TOWER_TEMP_HEIGHTS = [2, 50, 80]
@@ -47,9 +52,64 @@ def calculate_air_density(temp_c, pressure_mbar):
     return density
 
 
+def get_pressure_column(df):
+    """
+    Detect the pressure column name from DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame.
+
+    Returns
+    -------
+    str or None
+        Pressure column name, or None if not found.
+    """
+    possible_names = ["Station Pressure [mBar]", "Pressure"]
+    for name in possible_names:
+        if name in df.columns:
+            return name
+    return None
+
+
+def get_temperature_columns(df):
+    """
+    Detect temperature column(s) from DataFrame.
+
+    Returns a list of (height, column_name) tuples.
+    For radar data: returns [(None, "Temperature")]
+    For tower data: returns [(2, "Temperature @ 2m [deg C]"), ...]
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame.
+
+    Returns
+    -------
+    list
+        List of (height, column_name) tuples.
+    """
+    results = []
+
+    # Check for tower-style columns
+    for h in TOWER_TEMP_HEIGHTS:
+        col = f"Temperature @ {h}m [deg C]"
+        if col in df.columns:
+            results.append((h, col))
+
+    # If no tower columns found, check for radar-style single column
+    if not results:
+        if "Temperature" in df.columns:
+            results.append((None, "Temperature"))
+
+    return results
+
+
 def compute_density_daily_variation(df, time_col):
     """
-    Compute daily air density variation for all temperature measurement heights.
+    Compute daily air density variation.
 
     Parameters
     ----------
@@ -61,23 +121,21 @@ def compute_density_daily_variation(df, time_col):
     Returns
     -------
     dict
-        Dictionary mapping height to DataFrame with hourly statistics.
+        Dictionary mapping height (or 'station') to DataFrame with hourly statistics.
     """
     results = {}
 
-    # Get pressure column (station pressure is typically at one height)
-    pressure_col = "Station Pressure [mBar]"
-
-    if pressure_col not in df.columns:
-        print(f"Warning: Pressure column '{pressure_col}' not found.")
+    pressure_col = get_pressure_column(df)
+    if pressure_col is None:
+        print("Warning: No pressure column found.")
         return results
 
-    for h in TOWER_TEMP_HEIGHTS:
-        temp_col = f"Temperature @ {h}m [deg C]"
+    temp_columns = get_temperature_columns(df)
+    if not temp_columns:
+        print("Warning: No temperature columns found.")
+        return results
 
-        if temp_col not in df.columns:
-            continue
-
+    for h, temp_col in temp_columns:
         # Calculate air density
         df_copy = df[[time_col, temp_col, pressure_col]].copy()
         df_copy = df_copy.dropna(subset=[temp_col, pressure_col])
@@ -96,32 +154,42 @@ def compute_density_daily_variation(df, time_col):
         hourly_stats = df_copy.groupby('hour')['density'].agg(['mean', 'std', 'min', 'max'])
         hourly_stats = hourly_stats.reset_index()
 
-        results[h] = hourly_stats
+        # Use height or 'station' as key
+        key = f"{h}m" if h is not None else "station"
+        results[key] = hourly_stats
 
     return results
 
 
-def plot_density_individual(stats_dict, heights, title, output_path):
+def plot_density_individual(stats_dict, title, output_path, is_tower=True):
     """
-    Plot daily density variation with individual subplots for each height.
+    Plot daily density variation with individual subplots.
     """
-    n_heights = len(heights)
-    n_cols = 2
-    n_rows = (n_heights + n_cols - 1) // n_cols
+    n_plots = len(stats_dict)
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 5 * n_rows))
-    axes = axes.flatten()
+    if n_plots == 0:
+        print("No density data to plot.")
+        return
 
-    colors = plt.cm.plasma(np.linspace(0.2, 0.8, n_heights))
+    if is_tower:
+        n_cols = 2
+        keys = list(stats_dict.keys())
+    else:
+        n_cols = 1
+        keys = list(stats_dict.keys())
 
-    for idx, h in enumerate(heights):
-        if h not in stats_dict:
-            axes[idx].text(0.5, 0.5, 'No data',
-                          ha='center', va='center', transform=axes[idx].transAxes)
-            axes[idx].set_title(f'{h}m')
-            continue
+    n_rows = (n_plots + n_cols - 1) // n_cols
 
-        stats = stats_dict[h]
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 5 * n_rows))
+    if n_plots == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+
+    colors = plt.cm.plasma(np.linspace(0.2, 0.8, max(n_plots, 1)))
+
+    for idx, key in enumerate(keys):
+        stats = stats_dict[key]
         hours = stats['hour']
 
         axes[idx].plot(hours, stats['mean'], color=colors[idx], linewidth=2, label='Mean')
@@ -134,13 +202,13 @@ def plot_density_individual(stats_dict, heights, title, output_path):
 
         axes[idx].set_xlabel('Hour of Day')
         axes[idx].set_ylabel('Air Density (kg/m³)')
-        axes[idx].set_title(f'{h}m')
+        axes[idx].set_title(f'Height: {key}' if key != 'station' else 'Station')
         axes[idx].set_xticks(range(0, 24, 3))
         axes[idx].grid(True, alpha=0.3)
         axes[idx].legend(fontsize=7)
 
     # Hide unused subplots
-    for idx in range(n_heights, len(axes)):
+    for idx in range(n_plots, len(axes)):
         axes[idx].set_visible(False)
 
     fig.suptitle(title, fontsize=14, fontweight='bold', y=0.98)
@@ -151,23 +219,21 @@ def plot_density_individual(stats_dict, heights, title, output_path):
     print(f"Plot saved to: {output_path}")
 
 
-def plot_density_combined(stats_dict, heights, title, output_path):
+def plot_density_combined(stats_dict, title, output_path):
     """
     Plot all density variations on a single figure.
     """
     fig, ax = plt.subplots(figsize=(12, 8))
 
-    norm_heights = [(h - min(heights)) / (max(heights) - min(heights)) for h in heights]
-    colors = plt.cm.plasma(norm_heights)
+    n_plots = len(stats_dict)
+    colors = plt.cm.plasma(np.linspace(0.2, 0.8, max(n_plots, 1)))
 
-    for h, color in zip(heights, colors):
-        if h not in stats_dict:
-            continue
-
-        stats = stats_dict[h]
+    for idx, (key, stats) in enumerate(stats_dict.items()):
         hours = stats['hour']
+        color = colors[idx]
 
-        ax.plot(hours, stats['mean'], linewidth=2, color=color, label=f'{h}m')
+        label = key if key != 'station' else 'Station'
+        ax.plot(hours, stats['mean'], linewidth=2, color=color, label=label)
         ax.fill_between(hours,
                        stats['mean'] - stats['std'],
                        stats['mean'] + stats['std'],
@@ -176,7 +242,7 @@ def plot_density_combined(stats_dict, heights, title, output_path):
     ax.set_xlabel('Hour of Day', fontsize=12)
     ax.set_ylabel('Air Density (kg/m³)', fontsize=12)
     ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.legend(title='Height', fontsize=9, title_fontsize=10, loc='upper right', framealpha=0.9)
+    ax.legend(title='Location', fontsize=9, title_fontsize=10, loc='upper right', framealpha=0.9)
     ax.set_xticks(range(0, 24, 2))
     ax.grid(True, alpha=0.3)
 
@@ -188,39 +254,67 @@ def plot_density_combined(stats_dict, heights, title, output_path):
 
 
 def main():
-    """Generate air density daily variation plots."""
-    os.makedirs("result/chart/tower/density_variation", exist_ok=True)
+    """Generate air density daily variation plots for radar and tower data."""
+    os.makedirs(RADAR_OUTPUT_DIR, exist_ok=True)
+    os.makedirs(TOWER_OUTPUT_DIR, exist_ok=True)
 
-    print("Loading tower data...")
+    # Import radar data
+    print("Loading radar data...")
+    radar_df = import_data("data/radar.csv")
+    radar_time_col = "Time" if "Time" in radar_df.columns else "timestamp"
+
+    print("Computing radar air density daily variation...")
+    radar_density_stats = compute_density_daily_variation(
+        df=radar_df,
+        time_col=radar_time_col
+    )
+
+    if radar_density_stats:
+        print("\nGenerating radar air density daily variation plot...")
+        plot_density_individual(
+            stats_dict=radar_density_stats,
+            title="Radar Air Density Daily Variation",
+            output_path=os.path.join(RADAR_OUTPUT_DIR, "density_daily_variation.png"),
+            is_tower=False
+        )
+
+        print("Generating radar air density combined plot...")
+        plot_density_combined(
+            stats_dict=radar_density_stats,
+            title="Radar Air Density Daily Variation",
+            output_path=os.path.join(RADAR_OUTPUT_DIR, "density_daily_variation_combined.png")
+        )
+    else:
+        print("\nNo radar density data available.")
+
+    # Import tower data
+    print("\nLoading tower data...")
     tower_df = import_data("data/tower.csv")
-
     tower_time_col = "Time" if "Time" in tower_df.columns else "timestamp"
 
-    print("Computing air density daily variation...")
-    density_stats = compute_density_daily_variation(
+    print("Computing tower air density daily variation...")
+    tower_density_stats = compute_density_daily_variation(
         df=tower_df,
         time_col=tower_time_col
     )
 
-    if not density_stats:
-        print("No density data available. Skipping density plots.")
-        return
+    if tower_density_stats:
+        print("\nGenerating tower air density daily variation plot...")
+        plot_density_individual(
+            stats_dict=tower_density_stats,
+            title="Tower Air Density Daily Variation",
+            output_path=os.path.join(TOWER_OUTPUT_DIR, "density_daily_variation.png"),
+            is_tower=True
+        )
 
-    print("\nGenerating air density daily variation plot...")
-    plot_density_individual(
-        stats_dict=density_stats,
-        heights=TOWER_TEMP_HEIGHTS,
-        title="Air Density Daily Variation",
-        output_path="result/chart/tower/density_variation/density_daily_variation.png"
-    )
-
-    print("Generating air density combined plot...")
-    plot_density_combined(
-        stats_dict=density_stats,
-        heights=TOWER_TEMP_HEIGHTS,
-        title="Air Density Daily Variation (All Heights)",
-        output_path="result/chart/tower/density_variation/density_daily_variation_combined.png"
-    )
+        print("Generating tower air density combined plot...")
+        plot_density_combined(
+            stats_dict=tower_density_stats,
+            title="Tower Air Density Daily Variation (All Heights)",
+            output_path=os.path.join(TOWER_OUTPUT_DIR, "density_daily_variation_combined.png")
+        )
+    else:
+        print("\nNo tower density data available.")
 
     print("\nDone! Air density plots generated.")
 
