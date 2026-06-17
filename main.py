@@ -7,6 +7,7 @@ from src.chart.weibull_plot import main as weibull_plot_main
 from src.chart.daily_variation import main as daily_variation_main
 from src.chart.density_variation import main as density_variation_main
 from src.chart.shear_variation import main as shear_variation_main
+from src.chart.wind_rose import main as wind_rose_main
 import sys
 
 def main():
@@ -90,9 +91,29 @@ def main():
     
     shear_variation_main()
 
+    print("\n------------------------------------------------")
+    print("Generating wind rose plots...")
+    print("------------------------------------------------\n")
+    
+    wind_rose_main()
+
     print("\n================================================")
     print("All processing complete!")
     print("================================================")
+    print("\nResults:")
+    print("  - QC data: result/qc_radar.csv, result/qc_tower.csv")
+    print("  - Radar charts:")
+    print("    - Weibull: result/chart/radar/weibull/")
+    print("    - Daily variation: result/chart/radar/daily_variation/")
+    print("    - Density variation: result/chart/radar/density_variation/")
+    print("    - Shear variation: result/chart/radar/shear_variation/")
+    print("    - Wind rose: result/chart/radar/wind_rose/")
+    print("  - Tower charts:")
+    print("    - Weibull: result/chart/tower/weibull/")
+    print("    - Daily variation: result/chart/tower/daily_variation/")
+    print("    - Density variation: result/chart/tower/density_variation/")
+    print("    - Shear variation: result/chart/tower/shear_variation/")
+    print("    - Wind rose: result/chart/tower/wind_rose/")
 
 
 if __name__ == "__main__":
