@@ -462,6 +462,138 @@ def apply_qc(df):
 
     return df
 
+def track_step_availability(df, output_path="result/qc_radar_rate.csv"):
+    """
+    Track data availability after each QC step without modifying the input.
+
+    Runs each QC test group sequentially (cumulatively) on a copy of the input
+    DataFrame and records the percentage of records that remain valid
+    (QC == 0) at each height after every stage. Also summarizes the QC code
+    distribution and overall (mean across heights) availability.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Raw measurement DataFrame (no QC flag columns required).
+
+    output_path : str, optional
+        Path to write the availability summary CSV.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The availability summary table (per-height rows plus a mean row).
+    """
+
+    stages = [
+        ("After Missing Test(%)", [missing_test]),
+        ("After Range Test(%)", [range_test]),
+        ("After Correlation Test(%)", [
+            turbulence_correlation_test,
+            vertical_speed_correlation_test,
+            vertical_direction_correlation_test,
+        ]),
+        ("After Trend Test(%)", [flatline_test, spike_test]),
+    ]
+
+    stage_labels = [
+        "Raw Availability(%)",
+        "After Missing Test(%)",
+        "After Range Test(%)",
+        "After Correlation Test(%)",
+        "After Trend Test(%)",
+        "Final Availability(%)",
+    ]
+
+    df_track = init_qc_flags(df)
+
+    total_records = len(df_track)
+
+    raw_avails = []
+    stage_avails = {label: [] for label in stage_labels[1:-1]}
+
+    for h in HEIGHTS:
+
+        qc = f"QC_{h}m"
+        ws = f"Wind Speed{h}m"
+
+        if ws in df_track.columns:
+            raw_avails.append(df_track[ws].notna().sum() / total_records * 100)
+        else:
+            raw_avails.append(0.0)
+
+        for stage_label, funcs in stages:
+
+            for func in funcs:
+                df_track = func(df_track)
+
+            stage_avails[stage_label].append(
+                (df_track[qc] == 0).sum() / total_records * 100
+            )
+
+    final_avails = stage_avails["After Trend Test(%)"]
+
+    qc_codes = [
+        (1, "QC1 Range(%)"),
+        (2, "QC2 Correlation(%)"),
+        (3, "QC3 Trend(%)"),
+        (4, "QC4 Profile(%)"),
+    ]
+
+    code_dists = {col: [] for _, col in qc_codes}
+
+    for h in HEIGHTS:
+
+        qc = f"QC_{h}m"
+
+        for code, col in qc_codes:
+
+            count = (df_track[qc] == code).sum()
+            code_dists[col].append(count / total_records * 100)
+
+    rows = []
+
+    for i, h in enumerate(HEIGHTS):
+
+        row = {
+            "Height(m)": h,
+            "Total Records": total_records,
+            "Raw Availability(%)": round(raw_avails[i], 2),
+            "After Missing Test(%)": round(stage_avails["After Missing Test(%)"][i], 2),
+            "After Range Test(%)": round(stage_avails["After Range Test(%)"][i], 2),
+            "After Correlation Test(%)": round(stage_avails["After Correlation Test(%)"][i], 2),
+            "After Trend Test(%)": round(stage_avails["After Trend Test(%)"][i], 2),
+            "Final Availability(%)": round(final_avails[i], 2),
+        }
+
+        for _, col in qc_codes:
+            row[col] = round(code_dists[col][i], 2)
+
+        rows.append(row)
+
+    mean_row = {"Height(m)": "Mean", "Total Records": total_records}
+
+    for key in stage_labels:
+
+        if key == "Raw Availability(%)":
+            vals = raw_avails
+        elif key == "Final Availability(%)":
+            vals = final_avails
+        else:
+            vals = stage_avails[key]
+
+        mean_row[key] = round(sum(vals) / len(vals), 2)
+
+    for _, col in qc_codes:
+        mean_row[col] = round(sum(code_dists[col]) / len(code_dists[col]), 2)
+
+    rows.append(mean_row)
+
+    result = pd.DataFrame(rows)
+    result.to_csv(output_path, index=False)
+
+    return result
+
 def radar_run_qc(df):
     """
     Run the full QC pipeline on the input DataFrame.

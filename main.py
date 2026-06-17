@@ -1,7 +1,9 @@
 from src.data_file import *
 from src.radar.qc_filter import radar_run_qc
+from src.radar.qc_filter import track_step_availability as radar_track_step_availability
 from src.radar.qc_cat import radar_cat_qc
 from src.tower.qc_filter import tower_run_qc
+from src.tower.qc_filter import track_step_availability as tower_track_step_availability
 from src.tower.qc_cat import tower_cat_qc
 from src.chart.weibull_plot import main as weibull_plot_main
 from src.chart.daily_variation import main as daily_variation_main
@@ -52,11 +54,25 @@ def main():
     radar_cat_qc(radar_data, qc_radar_data)
 
     print("\n------------------------------------------------")
+    print("Tracking per-step availability for radar data...")
+    print("------------------------------------------------\n")
+
+    radar_rate = radar_track_step_availability(radar_data)
+    print(radar_rate)
+
+    print("\n------------------------------------------------")
     print("Starting QC and categorization for tower data...")
     print("------------------------------------------------\n")
 
     qc_tower_data = tower_run_qc(tower_data)
     tower_cat_qc(tower_data, qc_tower_data)
+
+    print("\n------------------------------------------------")
+    print("Tracking per-step availability for tower data...")
+    print("------------------------------------------------\n")
+
+    tower_rate = tower_track_step_availability(tower_data)
+    print(tower_rate)
     
     # Export QC results
     print("\n------------------------------------------------")
@@ -102,6 +118,7 @@ def main():
     print("================================================")
     print("\nResults:")
     print("  - QC data: result/qc_radar.csv, result/qc_tower.csv")
+    print("  - QC step availability: result/qc_radar_rate.csv, result/qc_tower_rate.csv")
     print("  - Radar charts:")
     print("    - Weibull: result/chart/radar/weibull/")
     print("    - Daily variation: result/chart/radar/daily_variation/")
