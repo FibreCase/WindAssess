@@ -5,6 +5,8 @@ from src.tower.qc_filter import tower_run_qc
 from src.tower.qc_cat import tower_cat_qc
 from src.chart.weibull_plot import main as weibull_plot_main
 from src.chart.daily_variation import main as daily_variation_main
+from src.chart.density_variation import main as density_variation_main
+from src.chart.shear_variation import main as shear_variation_main
 import sys
 
 def main():
@@ -76,6 +78,18 @@ def main():
     
     daily_variation_main()
 
+    print("\n------------------------------------------------")
+    print("Generating air density variation plots...")
+    print("------------------------------------------------\n")
+    
+    density_variation_main()
+
+    print("\n------------------------------------------------")
+    print("Generating wind shear variation plots...")
+    print("------------------------------------------------\n")
+    
+    shear_variation_main()
+
     print("\n================================================")
     print("All processing complete!")
     print("================================================")
@@ -83,6 +97,8 @@ def main():
     print("  - QC data: result/qc_radar.csv, result/qc_tower.csv")
     print("  - Weibull charts: result/chart/weibull/")
     print("  - Daily variation charts: result/chart/daily_variation/")
+    print("  - Density variation charts: result/chart/density_variation/")
+    print("  - Shear variation charts: result/chart/shear_variation/")
 
 
 if __name__ == "__main__":
