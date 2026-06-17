@@ -18,6 +18,10 @@ def main():
     """
 
     # Import data
+    print("\n------------------------------------------------")
+    print("Starting data import...")
+    print("------------------------------------------------\n")
+
     radar_data = import_data("data/radar.csv")
     if radar_data is not None:
         print("Data imported successfully. Here are the first few rows:")
@@ -50,6 +54,10 @@ def main():
     tower_cat_qc(tower_data, qc_tower_data)
     
     # Export QC results
+    print("\n------------------------------------------------")
+    print("Exporting QC results to CSV files...")
+    print("------------------------------------------------\n")
+    
     export_data(qc_radar_data, "result/qc_radar.csv")
     export_data(qc_tower_data, "result/qc_tower.csv")
 
