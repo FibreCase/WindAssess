@@ -199,8 +199,9 @@ def plot_weibull_combined(df, heights, get_column_fn, title, output_path):
 
 def main():
     """Generate Weibull distribution plots for radar and tower data."""
-    # Create output directory
-    os.makedirs("result/chart", exist_ok=True)
+    # Create output directories
+    os.makedirs("result/chart/radar/weibull", exist_ok=True)
+    os.makedirs("result/chart/tower/weibull", exist_ok=True)
 
     # Import data
     print("Loading radar data...")
@@ -216,7 +217,7 @@ def main():
         heights=RADAR_HEIGHTS,
         get_column_fn=get_radar_speed_column,
         title="Radar Wind Speed Weibull Distribution",
-        output_path="result/chart/radar_weibull.png"
+        output_path="result/chart/radar/weibull/radar_weibull.png"
     )
 
     # Plot radar combined Weibull distributions
@@ -226,7 +227,7 @@ def main():
         heights=RADAR_HEIGHTS,
         get_column_fn=get_radar_speed_column,
         title="Radar Wind Speed Weibull Distribution (All Heights)",
-        output_path="result/chart/radar_weibull_combined.png"
+        output_path="result/chart/radar/weibull/radar_weibull_combined.png"
     )
 
     # Plot tower Weibull distributions (individual subplots)
@@ -236,7 +237,7 @@ def main():
         heights=TOWER_HEIGHTS,
         get_column_fn=get_tower_speed_column,
         title="Tower Wind Speed Weibull Distribution",
-        output_path="result/chart/tower_weibull.png"
+        output_path="result/chart/tower/weibull/tower_weibull.png"
     )
 
     # Plot tower combined Weibull distributions
@@ -246,7 +247,7 @@ def main():
         heights=TOWER_HEIGHTS,
         get_column_fn=get_tower_speed_column,
         title="Tower Wind Speed Weibull Distribution (All Heights)",
-        output_path="result/chart/tower_weibull_combined.png"
+        output_path="result/chart/tower/weibull/tower_weibull_combined.png"
     )
 
     print("\nDone! All plots generated.")

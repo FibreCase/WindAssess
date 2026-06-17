@@ -95,10 +95,14 @@ def main():
     print("================================================")
     print("\nResults:")
     print("  - QC data: result/qc_radar.csv, result/qc_tower.csv")
-    print("  - Weibull charts: result/chart/weibull/")
-    print("  - Daily variation charts: result/chart/daily_variation/")
-    print("  - Density variation charts: result/chart/density_variation/")
-    print("  - Shear variation charts: result/chart/shear_variation/")
+    print("  - Radar charts:")
+    print("    - Weibull: result/chart/radar/weibull/")
+    print("    - Daily variation: result/chart/radar/daily_variation/")
+    print("  - Tower charts:")
+    print("    - Weibull: result/chart/tower/weibull/")
+    print("    - Daily variation: result/chart/tower/daily_variation/")
+    print("    - Density variation: result/chart/tower/density_variation/")
+    print("    - Shear variation: result/chart/tower/shear_variation/")
 
 
 if __name__ == "__main__":

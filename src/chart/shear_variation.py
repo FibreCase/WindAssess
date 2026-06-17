@@ -15,9 +15,6 @@ from src.data_file import import_data
 # Tower heights
 TOWER_HEIGHTS = [2, 5, 10, 20, 50, 80]
 
-# Output directory
-OUTPUT_DIR = "result/chart/shear_variation"
-
 
 def get_tower_speed_column(height):
     """Get the wind speed column name for tower data."""
@@ -218,7 +215,7 @@ def plot_shear_combined(results, title, output_path):
 
 def main():
     """Generate wind shear daily variation plots."""
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs("result/chart/tower/shear_variation", exist_ok=True)
 
     print("Loading tower data...")
     tower_df = import_data("data/tower.csv")
@@ -240,14 +237,14 @@ def main():
     plot_shear_individual(
         results=shear_results,
         title="Wind Shear Exponent Daily Variation",
-        output_path=os.path.join(OUTPUT_DIR, "shear_daily_variation.png")
+        output_path="result/chart/tower/shear_variation/shear_daily_variation.png"
     )
 
     print("Generating wind shear combined plot...")
     plot_shear_combined(
         results=shear_results,
         title="Wind Shear Exponent Daily Variation (All Height Pairs)",
-        output_path=os.path.join(OUTPUT_DIR, "shear_daily_variation_combined.png")
+        output_path="result/chart/tower/shear_variation/shear_daily_variation_combined.png"
     )
 
     print("\nDone! Wind shear plots generated.")

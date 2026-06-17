@@ -16,9 +16,6 @@ from src.data_file import import_data
 TOWER_HEIGHTS = [2, 5, 10, 20, 50, 80]
 RADAR_HEIGHTS = list(range(40, 201, 5))
 
-# Output directory
-OUTPUT_DIR = "result/chart/daily_variation"
-
 
 def get_tower_speed_column(height):
     """Get the wind speed column name for tower data."""
@@ -195,8 +192,9 @@ def plot_daily_variation_combined(stats_dict, heights, title, output_path):
 
 def main():
     """Generate daily variation plots for radar and tower data."""
-    # Create output directory
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    # Create output directories
+    os.makedirs("result/chart/radar/daily_variation", exist_ok=True)
+    os.makedirs("result/chart/tower/daily_variation", exist_ok=True)
 
     # Import data
     print("Loading radar data...")
@@ -233,7 +231,7 @@ def main():
         stats_dict=radar_stats,
         heights=RADAR_HEIGHTS,
         title="Radar Wind Speed Daily Variation",
-        output_path=os.path.join(OUTPUT_DIR, "radar_daily_variation.png")
+        output_path="result/chart/radar/daily_variation/radar_daily_variation.png"
     )
 
     # Plot radar combined daily variation
@@ -242,7 +240,7 @@ def main():
         stats_dict=radar_stats,
         heights=RADAR_HEIGHTS,
         title="Radar Wind Speed Daily Variation (All Heights)",
-        output_path=os.path.join(OUTPUT_DIR, "radar_daily_variation_combined.png")
+        output_path="result/chart/radar/daily_variation/radar_daily_variation_combined.png"
     )
 
     # Plot tower daily variation (individual subplots)
@@ -251,7 +249,7 @@ def main():
         stats_dict=tower_stats,
         heights=TOWER_HEIGHTS,
         title="Tower Wind Speed Daily Variation",
-        output_path=os.path.join(OUTPUT_DIR, "tower_daily_variation.png")
+        output_path="result/chart/tower/daily_variation/tower_daily_variation.png"
     )
 
     # Plot tower combined daily variation
@@ -260,7 +258,7 @@ def main():
         stats_dict=tower_stats,
         heights=TOWER_HEIGHTS,
         title="Tower Wind Speed Daily Variation (All Heights)",
-        output_path=os.path.join(OUTPUT_DIR, "tower_daily_variation_combined.png")
+        output_path="result/chart/tower/daily_variation/tower_daily_variation_combined.png"
     )
 
     print("\nDone! All daily variation plots generated.")

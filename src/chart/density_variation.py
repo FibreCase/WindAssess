@@ -15,9 +15,6 @@ from src.data_file import import_data
 # Tower heights with temperature measurements
 TOWER_TEMP_HEIGHTS = [2, 50, 80]
 
-# Output directory
-OUTPUT_DIR = "result/chart/density_variation"
-
 
 def calculate_air_density(temp_c, pressure_mbar):
     """
@@ -192,7 +189,7 @@ def plot_density_combined(stats_dict, heights, title, output_path):
 
 def main():
     """Generate air density daily variation plots."""
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs("result/chart/tower/density_variation", exist_ok=True)
 
     print("Loading tower data...")
     tower_df = import_data("data/tower.csv")
@@ -214,7 +211,7 @@ def main():
         stats_dict=density_stats,
         heights=TOWER_TEMP_HEIGHTS,
         title="Air Density Daily Variation",
-        output_path=os.path.join(OUTPUT_DIR, "density_daily_variation.png")
+        output_path="result/chart/tower/density_variation/density_daily_variation.png"
     )
 
     print("Generating air density combined plot...")
@@ -222,7 +219,7 @@ def main():
         stats_dict=density_stats,
         heights=TOWER_TEMP_HEIGHTS,
         title="Air Density Daily Variation (All Heights)",
-        output_path=os.path.join(OUTPUT_DIR, "density_daily_variation_combined.png")
+        output_path="result/chart/tower/density_variation/density_daily_variation_combined.png"
     )
 
     print("\nDone! Air density plots generated.")
