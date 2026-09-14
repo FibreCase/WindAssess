@@ -5,13 +5,15 @@ build/
 dist/
 wheels/
 *.egg-info
+.writing/
 
 # AI Agent files
 .qoder/
 
 # Original data and results
 data/
-result/
+result/*
+!result/chart/
 report/
 *.pdf
 
