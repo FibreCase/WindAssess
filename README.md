@@ -1,6 +1,8 @@
 # WindAssess — Wind Resource Assessment Toolkit
 
-[🇬🇧 English](README.md) | [🇨🇳 中文](README_zh.md)
+English | [中文](README_zh.md)
+
+> [Final Report (in Chinese)](REPORT.md)
 
 A Python toolkit for processing and analyzing **wind resource measurement
 data** from two complementary observation platforms — **SODAR / acoustic

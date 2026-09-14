@@ -1,6 +1,8 @@
 # WindAssess — 风资源评估工具
 
-[🇬🇧 English](README.md) | [🇨🇳 中文](README_zh.md)
+[English](README.md) | 中文
+
+> 阅读 [最终报告](REPORT.md)
 
 基于 Python 的风资源测量数据处理与评估工具，支持**声雷达（SODAR）**与
 **常规测风塔**两类数据源，按 **NB/T 31147—2018**《风电场工程风能资源测量与
